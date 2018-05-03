@@ -157,43 +157,50 @@ void ParseForData(const std::string& filename,
   int caseid = 0;
   int count  = 0;
   int offset = 0;
+  int caseGap = 0;
   std::vector<int> currentsplits;
+
   while(std::getline(stream, currentRead))
   {
     trimString(currentRead);
+    // Condition to quit taking cases.
     //std::cout << "Currently processing : " << currentRead << std::endl;
     if(currentRead.find(newCase) != std::string::npos)
     {
-      if(caseid != 0)
+      if(caseid == 0)
+      { caseid++; continue;}
+      // std::cout << "Offset For case " << caseid << " : " << offset << std::endl;
+      caseOffsets.push_back(offset);
+      numShapes.push_back(count);
+      splitWiki.push_back(count);
+      // Everytime we push the number of shapes in, increase the offset by 1.
+      // The other offset changes take care of the type of shape and connectivity.
+      offset++;
+      if(currentsplits.size() != 0)
       {
-        caseOffsets.push_back(offset);
-        // For each case we include num of shapes in the wiki
-        ++offset;
-        numShapes.push_back(count);
-        splitWiki.push_back(count);
-        if(currentsplits.size() != 0)
-          splitWiki.insert(splitWiki.begin() + splitWiki.size(),
-                          currentsplits.begin(), currentsplits.end());
+        splitWiki.insert(splitWiki.begin() + splitWiki.size(),
+                         currentsplits.begin(), currentsplits.end());
         currentsplits.clear();
+        offset += caseGap;
       }
-      // Condition to quit taking cases.
+      count = 0;
+      caseGap = 0;
+      ++caseid;
       if(currentRead.find(stopCue) != std::string::npos)
         break;
-      count = 0;
-      ++caseid;
     }
     else
     {
       // Tokenize the string on commas
       std::vector<std::string> tokens;
       char* toTokenize = strdup(currentRead.c_str());
-      char * token = std::strtok(toTokenize, delimchar);
+      char* token = std::strtok(toTokenize, delimchar);
       while(token != NULL)
       {
         tokens.push_back(std::string(token));
         token = std::strtok(NULL, delimchar);
       }
-      offset += MapVisitToVTKm(tokens, currentsplits);
+      caseGap += MapVisitToVTKm(tokens, currentsplits);
       ++count;
     }
   }
@@ -212,20 +219,46 @@ int main(int argc, char **argv)
   ParseForData(filename, numShapes, splitWiki, caseOffsets);
 
   // print offsets.
-  /* for(int i = 0; i < 256; i++)
-  {
-    std::cout << "Case : " << i << ", Num Shapes : " << numShapes[i] << ", Offset : "
-      << caseOffsets[i] << std::endl;
-  }*/
-  std::cout << numShapes.size() << ", " << caseOffsets.size() << std::endl;
+  std::cout << "Sizes " << std::endl;
+  std::cout << "Shapes  = " << numShapes.size() << ", Offsets = " << caseOffsets.size() << std::endl;
   for(int i = 0; i < 256; i++)
   {
-    int start = caseOffsets[i];
-    int end = caseOffsets[i+1];
-    for(int j = start; j < end; j++)
-    {
-      std::cout << "Case " << i << ", Shapes : " << splitWiki[j] << std::endl;
-      break;
-    }
+    std::cout << "Case : " << i << ", Num Shapes : " << numShapes[i]
+              << ", Offset : " << caseOffsets[i] << std::endl;
   }
+
+  // Now that everything is read and processed.
+  // Write the tables to an output file.
+  std::ofstream output;
+  output.open("output.txt");
+  for(int i = 0; i < caseOffsets.size();)
+  {
+    for(int j = 0; j < 8 && i < caseOffsets.size(); i++,j++)
+    {
+      output << caseOffsets[i] << ", ";
+    }
+    output << std::endl;
+  }
+
+  output << std::endl;
+
+  int caseid = 0;
+  for(int i = 0 ; i < splitWiki.size();)
+  {
+     // print size
+     int shapes = splitWiki[i];
+     output << shapes << ", " << "\t //case " << caseid++ << std::endl; i++;
+     // if there are more than one shapes
+     for(int j = 0; j < shapes; j++)
+     {
+       int shapeid = splitWiki[i];
+       output << shapeid << ", "; i++;
+       int nverts = splitWiki[i];
+       output << nverts << ", "; i++;
+       for(int k = 0; k < nverts; k++)
+       {  output << splitWiki[i] << ", "; i++; }
+       output << std::endl;
+     }
+  }
+  output.close();
 }
