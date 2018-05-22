@@ -11,7 +11,7 @@ class CellLocator
 {
   VTKM_EXEC virtual FindCell(vtkm::Vec<vtkm::FloatDefault, 3> &point,
                              vtkm::Id &cellId,
-                             vtkm::Vec<vtkm::FlaotDefault, 3> &paramertic) = 0;
+                             vtkm::Vec<vtkm::FlaotDefault, 3> &paramertic) const = 0;
 }
 
 } // namespace exec
@@ -46,8 +46,9 @@ public:
             vtkm::cont::ArrayHandle<vtkm::Id> &cellIds,
             vtkm::cont::ArrayHandle<vtkm::Vec<vktm::FloatDefault, 3>> &parametricCoords) const
   {
-    // Invoke the worklet with the provided parameters and the execution object
-    // returned by PrepareForExecution.
+    // Invoke the worklet with the provided parameters and 'this' as an argument.
+    // The PrepareForExecution is expected to be called on 'this' to get the ExecObject
+    // into the Worklet.
   }
 
   template<typename Type, typename Storage>
@@ -77,7 +78,6 @@ public:
 private:
   vtkm::cont::DynamicCellSet cellSet;
   vtkm::cont::CoordinateSystem coordinates;
-  vtkm::exec::CellLocator execCellLocator;
 };
 
 } // namespace cont
