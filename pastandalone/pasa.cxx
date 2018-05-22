@@ -45,10 +45,12 @@ int main(int argc, char **argv) {
   std::cout << "Executing for TBB" << std::endl;
   int numThreads = atoi(argv[4]);
   int nT = tbb::task_scheduler_init::default_num_threads();
+  std::cout << "Default threads : " << nT << std::endl;
   if (numThreads != -1)
     nT = (int)numThreads;
   // make sure the task_scheduler_init object is in scope when running sth w/
   // TBB
+  std::cout << "New threads : " << nT << std::endl;
   tbb::task_scheduler_init init(nT);
 #endif
 
