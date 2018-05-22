@@ -59,6 +59,7 @@ void performAdvection(std::string inData,
   GenerateSeeds(seeds, dataset, numSeeds, inData);
   vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, 3>> seedsArray;
   seedsArray = vtkm::cont::make_ArrayHandle(seeds);
+  std::cout << "Executing using " << seedsArray.GetNumberOfValues() << " seeds." << std::endl;
 
   using GridEvaluator =
     vtkm::worklet::particleadvection::UniformGridEvaluate<FieldPortalConstType,
@@ -79,6 +80,10 @@ void performAdvection(std::string inData,
   vtkm::cont::CoordinateSystem outputCoords("coordinates", res.positions);
   outData.AddCellSet(res.polyLines);
   outData.AddCoordinateSystem(outputCoords);
+  std::cout << "Number of cells in output : "
+            << outData.GetCellSet(0).GetNumberOfCells() << std::endl;
+  std::cout << "Number of points in output : "
+            << outData.GetCoordinateSystem(0).GetData().GetNumberOfValues() << std::endl;
 }
 
 int main(int argc, char** argv)

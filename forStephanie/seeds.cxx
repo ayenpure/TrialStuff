@@ -19,7 +19,7 @@ static vtkm::Range subRange(vtkm::Range& range, T a, T b)
 }
 
 template<typename FieldType>
-void GenerateSeeds(std::vector<vtkm::Vec<FieldType,3>> seeds,
+void GenerateSeeds(std::vector<vtkm::Vec<FieldType,3>>& seeds,
                    vtkm::cont::DataSet& dataset,
                    vtkm::Id numSeeds,
                    std::string fname)
