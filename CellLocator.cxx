@@ -2,11 +2,13 @@ namespace vtkm {
 
 namespace exec
 {
-// This class is the class that will actually be used
-// in the Execution Environment, and all the base classes
-// of CellLocator should implement a specialization of this.
+// This will actually be used in the Execution Environment.
 // As this object is returned by the PrepareForExecution on
-// the CellLocator. Hence, needs to be covarient.
+// the CellLocator we need it to be covarient, and this acts
+// like a base class.
+// TODO : Does this need to be templated on Device?
+//        Because the derived class might need to store the types
+//        of the portal.
 class CellLocator
 {
   VTKM_EXEC virtual FindCell(vtkm::Vec<vtkm::FloatDefault, 3> &point,
