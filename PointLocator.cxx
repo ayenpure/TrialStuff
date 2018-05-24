@@ -16,6 +16,26 @@ class PointLocator
 namespace cont
 {
 
+class PointLocatorWorklet : public vtkm::worklet::WorkletMapField
+{
+public:
+  typedef void ControlSignature(FieldIn<Vec3> point,
+                                FieldOut<Id> nearestNeighborId,
+                                FieldOut<Float> distance,
+                                ExecObject pointLocator);
+
+  typedef void ExecutionSignature(_1, _2, _3, _4);
+
+  template<PointType, PointLocatorType>
+  VTKM_EXEC void operator()(const PointType &input,
+                            vtkm::Id &nearestNeighborId
+                            vtkm::FloatDefault& distance
+                            PointLocatorType &pointLocatori)
+  {
+    pointLocator.FindNearestNeighbor(input, nearestNeighborId, distance);
+  }
+}
+
 class PointLocator : public ExecuteObjectBase
 {
 
@@ -27,26 +47,36 @@ public:
   void SetCoords(const vtkm::cont::CoordinateSystem &coords)
   {
     this->coordinates = coords;
+    this->dirty = true;
   }
 
+  //Clean the ditry flag after building
   virtual void Build() = 0;
 
-  VTKM_CONT virtual void
+  template<typename DeviceAdapter>
+  VTKM_CONT void
   FindNearestNeighbors(const vtkm::cont::ArrayHandleVirtualCoordinates &points,
                        vtkm::cont::ArrayHandle<vtkm::Id> &nearestNeighborIds,
-                       vtkm::cont::ArrayHandle<vtkm::FloatDefault> &distances) const
+                       vtkm::cont::ArrayHandle<vtkm::FloatDefault> &distances,
+                       DeviceAdapter device) const
   {
-    //Default Implementation
+    vtkm::worklet::DispatcherMapField<PointLocatorWorklet, DeviceAdapter>().Invoke(
+      points,
+      nearestNeighborIds,
+      distances,
+      this->PrepareForExecution(device));
   }
 
-  template<typename Type, typename Storage>
+  template<typename Type, typename Storage, typename DeviceAdapter>
   VTKM_CONT void FindNearestNeighbors(const vtkm::cont::ArrayHandleVirtualCoordinates &points,
                                       vtkm::cont::ArrayHandle<vtkm::Id> &nearestNeighborIds,
-                                      vtkm::cont::ArrayHandle<vtkm::FloatDefault> &distances) const
+                                      vtkm::cont::ArrayHandle<vtkm::FloatDefault> &distances
+                                      DeviceAdapter device) const
   {
     this->FindCells(vtkm::cont::ArrayHandleVirtualCoordiantes(points),
                     nearestNeighborIds,
-                    distances);
+                    distances,
+                    device);
   }
 
   template<typename DeviceAdapter>
@@ -59,6 +89,7 @@ public:
 
 private:
   vtkm::cont::CoordinateSystem coordinates;
+  bool dirty;
 }
 
 } // namespace cont

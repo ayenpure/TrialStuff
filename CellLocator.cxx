@@ -22,7 +22,7 @@ class CellLocatorWorklet : public vtkm::worklet::WorkletMapField
 {
 public:
   typedef void ControlSignature(FieldIn<Vec3> points,
-                                FieldIn<Ids> cellIds,
+                                FieldOut<Id> cellIds,
                                 FieldOut<Vec3> parametricCoords,
                                 ExecObject cellLocator);
 
@@ -52,11 +52,13 @@ public:
   void SetCellSet(const vtkm::cont::DynamicCellSet &cellSet_)
   {
     this->cellSet = cellSet_;
+    this->dirty = true;
   }
 
   vtkm::cont::CoordinateSystem GetCoords() const
   {
     return this->coords;
+    this->dirty = true;
   }
 
   void SetCoords(const vtkm::cont::CoordinateSystem &coords_)
@@ -73,6 +75,7 @@ public:
     // This can be done how Rob has pointed out on the discussion
   }
 
+  //Clean the dirty flag after Building.
   virtual void Build() = 0;
 
   template<typename DeviceAdapter>
@@ -84,6 +87,8 @@ public:
     // Invoke the worklet with the provided parameters and 'this' as an argument.
     // The PrepareForExecution is expected to be called on 'this' to get the ExecObject
     // into the Worklet.
+    if(dirty)
+      Build();
     vtkm::worklet::DispatcherMapField<CellLocatorWorklet, DeviceAdapter>().Invoke(
       points,
       cellIds,
@@ -112,6 +117,7 @@ public:
 private:
   vtkm::cont::DynamicCellSet cellSet;
   vtkm::cont::CoordinateSystem coordinates;
+  bool dirty;
 };
 
 } // namespace cont
