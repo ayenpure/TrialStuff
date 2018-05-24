@@ -1,31 +1,65 @@
-template<typename DerievedLocator>
+namespace vtkm
+{
+
+namespace exec
+{
+
 class PointLocator
 {
+  VTKM_EXEC virtual FindNearestNeighbor(vtkm::Vec<vtkm::FloatDefault, 3> queryPoint
+                                        vtkm::Id &pointId,
+                                        FloatDefault &distance) const = 0;
+}
+
+} // namespace exec
+
+namespace cont
+{
+
+class PointLocator : public ExecuteObjectBase
+{
+
 public:
   PointLocator();
 
-  vtkm::cont::DynamicCoordinateSystem GetCoords() const;
+  vtkm::cont::CoordinateSystem GetCoords() const;
 
-  // Set the coodrinate system the current point locator is supposed
-  // to operate over.
-  void SetCoords(const vtkm::cont::DynamicCoordinateSystem& coords);
+  void SetCoords(const vtkm::cont::CoordinateSystem &coords)
+  {
+    this->coordinates = coords;
+  }
 
-  //Builds the search structure and creates the Execution Obejct
+  virtual void Build() = 0;
+
+  VTKM_CONT virtual void
+  FindNearestNeighbors(const vtkm::cont::ArrayHandleVirtualCoordinates &points,
+                       vtkm::cont::ArrayHandle<vtkm::Id> &nearestNeighborIds,
+                       vtkm::cont::ArrayHandle<vtkm::FloatDefault> &distances) const
+  {
+    //Default Implementation
+  }
+
+  template<typename Type, typename Storage>
+  VTKM_CONT void FindNearestNeighbors(const vtkm::cont::ArrayHandleVirtualCoordinates &points,
+                                      vtkm::cont::ArrayHandle<vtkm::Id> &nearestNeighborIds,
+                                      vtkm::cont::ArrayHandle<vtkm::FloatDefault> &distances) const
+  {
+    this->FindCells(vtkm::cont::ArrayHandleVirtualCoordiantes(points),
+                    nearestNeighborIds,
+                    distances);
+  }
+
   template<typename DeviceAdapter>
-  virtual void Build(DeviceAdapter) = 0;
+  VTKM_CONT vtkm::exec::PointLocator PrepareForExecution(DeviceAdapter device)
+  {
+    return this->PrepareForExecution(GetDeviceId(device));
+  }
 
-  template<typename PointComponentType,
-           typename PointStorageType,
-           typename DeviceAdapter>
-  virtual void FindNearestNeighbor(
-    const vtkm::cont::ArrayHandle<vtkm::Vec<PointComponentType, 3>, PointStorageType>& coords,
-    const vtkm::cont::ArrayHandle<vtkm::Vec<PointComponentType, 3>, PointStorageType>& queryPoints,
-    vtkm::cont::ArrayHandle<vtkm::Id>& nearestNeighborIds,
-    vtkm::cont::ArrayHandle<PointComponentType> distances,
-    DeviceAdapter) const = 0;
+  VTKM_CONT virtual vtkm::exec::PointLocator PrepareForExecution(vtkm::Id device) {} = 0;
 
-protected:
-  //The basic needed attributes on the point locator.
+private:
   vtkm::cont::CoordinateSystem coordinates;
-  vtkm::cont::ExecutionObjectFactoryBase executionObject;
-};
+}
+
+} // namespace cont
+} // namespace vtkm
