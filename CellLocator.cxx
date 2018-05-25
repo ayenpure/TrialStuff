@@ -9,9 +9,10 @@ namespace exec
 // like a base class.
 class CellLocator
 {
+public:
   VTKM_EXEC virtual FindCell(vtkm::Vec<vtkm::FloatDefault, 3> &point,
                              vtkm::Id &cellId,
-                             vtkm::Vec<vtkm::FlaotDefault, 3> &paramertic) const = 0;
+                             vtkm::Vec<vtkm::FloatDefault, 3> &parametric) const = 0;
 }
 
 } // namespace exec
@@ -42,7 +43,9 @@ class CellLocator : public ExecutionObjectBase
 {
 
 public:
-  CellLocator();
+  CellLocator()
+  : dirty(true)
+  {}
 
   vtkm::cont::DynamicCellSet GetCellSet() const
   {
@@ -58,21 +61,29 @@ public:
   vtkm::cont::CoordinateSystem GetCoords() const
   {
     return this->coords;
-    this->dirty = true;
   }
 
   void SetCoords(const vtkm::cont::CoordinateSystem &coords_)
   {
-    return this->coords = coords_;
+    this->coords = coords_;
+    this->dirty = true;
   }
 
-  // The following methods should be available as a general VTK-m utilities.
+  // The following method should be available as a general VTK-m utility.
   // Is it already?
   <typename DeviceAdapter>
-  VTKM_CONT vtkm::Id GetDeviceId(DeviceAdapter device)
+  VTKM_CONT vtkm::cont::DeviceAdapterId GetDeviceId(DeviceAdapter device)
   {
-    // Get the device Id from the DeviceAdapter
-    // This can be done how Rob has pointed out on the discussion
+    using DeviceInfo = vtkm::cont::DeviceAdapterTraits<DeviceAdapter>;
+    vtkm::cont::DeviceAdapterId deviceId = DeviceInfo::GetId();
+    if (deviceId < 0 || deviceId >= VTKM_MAX_DEVICE_ADAPTER_ID)
+    {
+      std::string msg = "Device '" + DeviceInfo::GetName() + "' has invalid ID of " +
+      std::to_string(deviceId) + "(VTKM_MAX_DEVICE_ADAPTER_ID = " +
+      std::to_string(VTKM_MAX_DEVICE_ADAPTER_ID) + ")";
+      throw vtkm::cont::ErrorBadType(msg);
+    }
+    return deviceId;
   }
 
   //Clean the dirty flag after Building.
@@ -84,9 +95,6 @@ public:
                            vtkm::cont::ArrayHandle<vtkm::Vec<vktm::FloatDefault, 3>> &parametricCoords,
                            DeviceAdapter device) const
   {
-    // Invoke the worklet with the provided parameters and 'this' as an argument.
-    // The PrepareForExecution is expected to be called on 'this' to get the ExecObject
-    // into the Worklet.
     if(dirty)
       Build();
     vtkm::worklet::DispatcherMapField<CellLocatorWorklet, DeviceAdapter>().Invoke(
@@ -112,7 +120,7 @@ public:
     return this->PrepareForExecution(GetDeviceId(device));
   }
 
-  VTKM_CONT virtual vtkm::exec::CellLocator PrepareForExecution(vtkm::Id device) {} = 0;
+  VTKM_CONT virtual vtkm::exec::CellLocator PrepareForExecution(vtkm::cont::DeviceAdapterId device) {} = 0;
 
 private:
   vtkm::cont::DynamicCellSet cellSet;

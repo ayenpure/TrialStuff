@@ -6,6 +6,7 @@ namespace exec
 
 class PointLocator
 {
+public:
   VTKM_EXEC virtual FindNearestNeighbor(vtkm::Vec<vtkm::FloatDefault, 3> queryPoint
                                         vtkm::Id &pointId,
                                         FloatDefault &distance) const = 0;
@@ -42,7 +43,10 @@ class PointLocator : public ExecuteObjectBase
 public:
   PointLocator();
 
-  vtkm::cont::CoordinateSystem GetCoords() const;
+  vtkm::cont::CoordinateSystem GetCoords() const
+  {
+    return this->coordinates;
+  }
 
   void SetCoords(const vtkm::cont::CoordinateSystem &coords)
   {
@@ -85,7 +89,7 @@ public:
     return this->PrepareForExecution(GetDeviceId(device));
   }
 
-  VTKM_CONT virtual vtkm::exec::PointLocator PrepareForExecution(vtkm::Id device) {} = 0;
+  VTKM_CONT virtual vtkm::exec::PointLocator PrepareForExecution(vtkm::cont::DeviceAdapterId device) {} = 0;
 
 private:
   vtkm::cont::CoordinateSystem coordinates;
