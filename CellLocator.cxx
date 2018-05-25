@@ -69,23 +69,6 @@ public:
     this->dirty = true;
   }
 
-  // The following method should be available as a general VTK-m utility.
-  // Is it already?
-  <typename DeviceAdapter>
-  VTKM_CONT vtkm::cont::DeviceAdapterId GetDeviceId(DeviceAdapter device)
-  {
-    using DeviceInfo = vtkm::cont::DeviceAdapterTraits<DeviceAdapter>;
-    vtkm::cont::DeviceAdapterId deviceId = DeviceInfo::GetId();
-    if (deviceId < 0 || deviceId >= VTKM_MAX_DEVICE_ADAPTER_ID)
-    {
-      std::string msg = "Device '" + DeviceInfo::GetName() + "' has invalid ID of " +
-      std::to_string(deviceId) + "(VTKM_MAX_DEVICE_ADAPTER_ID = " +
-      std::to_string(VTKM_MAX_DEVICE_ADAPTER_ID) + ")";
-      throw vtkm::cont::ErrorBadType(msg);
-    }
-    return deviceId;
-  }
-
   //Clean the dirty flag after Building.
   virtual void Build() = 0;
 
@@ -111,6 +94,23 @@ public:
                            DeviceAdapter device) const
   {
     this->FindCells(vtkm::cont::ArrayHandleVirtualCoordiantes(points), cellIds, parametricCoords, DeviceAdapter);
+  }
+
+  // The following method should be available as a general VTK-m utility.
+  // Is it already?
+  <typename DeviceAdapter>
+  VTKM_CONT vtkm::cont::DeviceAdapterId GetDeviceId(DeviceAdapter device)
+  {
+    using DeviceInfo = vtkm::cont::DeviceAdapterTraits<DeviceAdapter>;
+    vtkm::cont::DeviceAdapterId deviceId = DeviceInfo::GetId();
+    if (deviceId < 0 || deviceId >= VTKM_MAX_DEVICE_ADAPTER_ID)
+    {
+      std::string msg = "Device '" + DeviceInfo::GetName() + "' has invalid ID of " +
+      std::to_string(deviceId) + "(VTKM_MAX_DEVICE_ADAPTER_ID = " +
+      std::to_string(VTKM_MAX_DEVICE_ADAPTER_ID) + ")";
+      throw vtkm::cont::ErrorBadType(msg);
+    }
+    return deviceId;
   }
 
   template<typename DeviceAdapter>
