@@ -10,117 +10,63 @@ namespace exec
 class CellLocator
 {
 public:
-  VTKM_EXEC virtual FindCell(vtkm::Vec<vtkm::FloatDefault, 3> &point,
-                             vtkm::Id &cellId,
-                             vtkm::Vec<vtkm::FloatDefault, 3> &parametric) const = 0;
+  VTKM_EXEC virtual FindCell(vtkm::Vec<vtkm::FloatDefault, 3>& point,
+                             vtkm::Id& cellId,
+                             vtkm::Vec<vtkm::FloatDefault, 3>& parametric) const = 0;
 }
 
 } // namespace exec
 
-namespace cont {
-
-class CellLocatorWorklet : public vtkm::worklet::WorkletMapField
+namespace cont
 {
-public:
-  typedef void ControlSignature(FieldIn<Vec3> points,
-                                FieldOut<Id> cellIds,
-                                FieldOut<Vec3> parametricCoords,
-                                ExecObject cellLocator);
-
-  typedef void ExecutionSignature(_1, _2, _3, _4);
-
-  template<PointType, ParametricType, CellLocatorType>
-  VTKM_EXEC void oparator()(const PointType &input,
-                            vtkm::Id &cellId,
-                            ParametricType &paramerticOutput,
-                            CellLocatorType &cellLocator)
-  {
-    cellLocator.FindCell(input, cellId, parametricOutput);
-  }
-}
 
 class CellLocator : public ExecutionObjectBase
 {
 
 public:
   CellLocator()
-  : dirty(true)
-  {}
-
-  vtkm::cont::DynamicCellSet GetCellSet() const
+    : dirty(true)
   {
-    return this->cellSet();
   }
 
-  void SetCellSet(const vtkm::cont::DynamicCellSet &cellSet_)
+  vtkm::cont::DynamicCellSet GetCellSet() const { return cellSet(); }
+
+  void SetCellSet(const vtkm::cont::DynamicCellSet& cellSet_)
   {
-    this->cellSet = cellSet_;
-    this->dirty = true;
+    cellSet = cellSet_;
+    dirty = true;
   }
 
-  vtkm::cont::CoordinateSystem GetCoords() const
+  vtkm::cont::CoordinateSystem GetCoords() const { return coords; }
+
+  void SetCoords(const vtkm::cont::CoordinateSystem& coords_)
   {
-    return this->coords;
+    coords = coords_;
+    dirty = true;
   }
 
-  void SetCoords(const vtkm::cont::CoordinateSystem &coords_)
-  {
-    this->coords = coords_;
-    this->dirty = true;
-  }
-
-  //Clean the dirty flag after Building.
   virtual void Build() = 0;
 
-  template<typename DeviceAdapter>
-  VTKM_CONT void FindCells(const vtkm::cont::ArrayHandleVirtualCoordinates &points,
-                           vtkm::cont::ArrayHandle<vtkm::Id> &cellIds,
-                           vtkm::cont::ArrayHandle<vtkm::Vec<vktm::FloatDefault, 3>> &parametricCoords,
-                           DeviceAdapter device) const
+  void Update()
   {
-    if(dirty)
+    if (dirty)
       Build();
-    vtkm::worklet::DispatcherMapField<CellLocatorWorklet, DeviceAdapter>().Invoke(
-      points,
-      cellIds,
-      parametricCoords,
-      this->PrepareForExecution(device));
+    dirty = false;
   }
 
-  template<typename Type, typename Storage, typename DeviceAdapter>
-  VTKM_CONT void FindCells(const vtkm::cont::ArrayHandle<vtkm::Vec<Type, 3>, Storage>& points,
-                           vtkm::cont::ArrayHandle<vtkm::Id>& cellIds,
-                           vtkm::cont::ArrayHandle<vtkm::Vec<vtkm::FloatDefault, 3>>& parametricCoords,
-                           DeviceAdapter device) const
+  <typename DeviceAdapter> VTKM_CONT vtkm::cont::DeviceAdapterId GetDeviceId(DeviceAdapter device)
   {
-    this->FindCells(vtkm::cont::ArrayHandleVirtualCoordiantes(points), cellIds, parametricCoords, DeviceAdapter);
-  }
-
-  // The following method should be available as a general VTK-m utility.
-  // Is it already?
-  <typename DeviceAdapter>
-  VTKM_CONT vtkm::cont::DeviceAdapterId GetDeviceId(DeviceAdapter device)
-  {
-    using DeviceInfo = vtkm::cont::DeviceAdapterTraits<DeviceAdapter>;
-    vtkm::cont::DeviceAdapterId deviceId = DeviceInfo::GetId();
-    if (deviceId < 0 || deviceId >= VTKM_MAX_DEVICE_ADAPTER_ID)
-    {
-      std::string msg = "Device '" + DeviceInfo::GetName() + "' has invalid ID of " +
-      std::to_string(deviceId) + "(VTKM_MAX_DEVICE_ADAPTER_ID = " +
-      std::to_string(VTKM_MAX_DEVICE_ADAPTER_ID) + ")";
-      throw vtkm::cont::ErrorBadType(msg);
-    }
-    return deviceId;
+    return vtkm::cont::DeviceAdapterTraits<DeviceAdapter>::GetId();
   }
 
   template<typename DeviceAdapter>
   VTKM_CONT vtkm::exec::CellLocator PrepareForExecution(DeviceAdapter device)
   {
-    //Get the device Id using the DeviceAdapter object
-    return this->PrepareForExecution(GetDeviceId(device));
+    return PrepareForExecution(GetDeviceId(device));
   }
 
-  VTKM_CONT virtual vtkm::exec::CellLocator PrepareForExecution(vtkm::cont::DeviceAdapterId device) {} = 0;
+  VTKM_CONT virtual vtkm::exec::CellLocator PrepareForExecution(
+    vtkm::cont::DeviceAdapterId device) = 0;
 
 private:
   vtkm::cont::DynamicCellSet cellSet;
