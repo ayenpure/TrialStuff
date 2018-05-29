@@ -1,4 +1,4 @@
 #!/bin/bash
 
 # Substitute proper path for built VTKm
-cmake -DVTKm_DIR=/home/abhishek/repositories/bmaster/lib/cmake/vtkm-1.2 -DCMAKE_BUILD_TYPE=Release
+cmake -DVTKm_DIR=/home/abhishek/repositories/bmine/lib/cmake/vtkm-1.2 -DCMAKE_BUILD_TYPE=Release
