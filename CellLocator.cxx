@@ -1,3 +1,7 @@
+#include <vtkm/Types.h>
+#include <vtkm/cont/DeviceAdapter.h>
+#include <vtkm/cont/ExecutionObjectBase.h>
+
 namespace vtkm
 {
 
@@ -10,7 +14,7 @@ namespace exec
 class CellLocator
 {
 public:
-  VTKM_EXEC virtual FindCell(vtkm::Vec<vtkm::FloatDefault, 3>& point,
+  VTKM_EXEC virtual FindCell(const vtkm::Vec<vtkm::FloatDefault, 3>& point,
                              vtkm::Id& cellId,
                              vtkm::Vec<vtkm::FloatDefault, 3>& parametric) const = 0;
 }
@@ -25,53 +29,49 @@ class CellLocator : public ExecutionObjectBase
 
 public:
   CellLocator()
-    : dirty(true)
+    : Dirty(true)
   {
   }
 
-  vtkm::cont::DynamicCellSet GetCellSet() const { return cellSet(); }
+  vtkm::cont::DynamicCellSet GetCellSet() const { return CellSet(); }
 
-  void SetCellSet(const vtkm::cont::DynamicCellSet& cellSet_)
+  void SetCellSet(const vtkm::cont::DynamicCellSet& cellSet)
   {
-    cellSet = cellSet_;
-    dirty = true;
+    CellSet = cellSet;
+    Dirty = true;
   }
 
-  vtkm::cont::CoordinateSystem GetCoords() const { return coords; }
+  vtkm::cont::CoordinateSystem GetCoords() const { return Coords; }
 
-  void SetCoords(const vtkm::cont::CoordinateSystem& coords_)
+  void SetCoords(const vtkm::cont::CoordinateSystem& coords)
   {
-    coords = coords_;
-    dirty = true;
+    Coords = coords;
+    Dirty = true;
   }
 
   virtual void Build() = 0;
 
   void Update()
   {
-    if (dirty)
+    if (Dirty)
       Build();
-    dirty = false;
-  }
-
-  <typename DeviceAdapter> VTKM_CONT vtkm::cont::DeviceAdapterId GetDeviceId(DeviceAdapter device)
-  {
-    return vtkm::cont::DeviceAdapterTraits<DeviceAdapter>::GetId();
+    Dirty = false;
   }
 
   template<typename DeviceAdapter>
   VTKM_CONT vtkm::exec::CellLocator PrepareForExecution(DeviceAdapter device)
   {
-    return PrepareForExecution(GetDeviceId(device));
+    vtkm::cont::DeviceAdapterId deviceId = vtkm::cont::DeviceAdapterTraits<DeviceAdapter>::GetId();
+    return PrepareForExecution(deviceId);
   }
 
   VTKM_CONT virtual vtkm::exec::CellLocator PrepareForExecution(
     vtkm::cont::DeviceAdapterId device) = 0;
 
 private:
-  vtkm::cont::DynamicCellSet cellSet;
-  vtkm::cont::CoordinateSystem coordinates;
-  bool dirty;
+  vtkm::cont::DynamicCellSet CellSet;
+  vtkm::cont::CoordinateSystem Coords;
+  bool Dirty;
 };
 
 } // namespace cont

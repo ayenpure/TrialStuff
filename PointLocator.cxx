@@ -1,3 +1,7 @@
+#include <vtkm/Types.h>
+#include <vtkm/cont/DeviceAdapter.h>
+#include <vtkm/cont/ExecutionObjectBase>
+
 namespace vtkm
 {
 
@@ -7,9 +11,9 @@ namespace exec
 class PointLocator
 {
 public:
-  VTKM_EXEC virtual FindNearestNeighbor(vtkm::Vec<vtkm::FloatDefault, 3> queryPoint,
+  VTKM_EXEC virtual FindNearestNeighbor(const vtkm::Vec<vtkm::FloatDefault, 3>& queryPoint,
                                         vtkm::Id& pointId,
-                                        FloatDefault& distanceSquared) const = 0;
+                                        vtkm::FloatDefault& distanceSquared) const = 0;
 }
 
 } // namespace exec
@@ -17,44 +21,45 @@ public:
 namespace cont
 {
 
-class PointLocator : public ExecuteObjectBase
+class PointLocator : public ExecutionObjectBase
 {
 
 public:
   PointLocator()
-    : dirty(true)
+    : Dirty(true)
   {
   }
 
-  vtkm::cont::CoordinateSystem GetCoords() const { return coordinates; }
+  vtkm::cont::CoordinateSystem GetCoords() const { return Coords; }
 
   void SetCoords(const vtkm::cont::CoordinateSystem& coords)
   {
-    coordinates = coords;
-    dirty = true;
+    Coords = coords;
+    Dirty = true;
   }
 
   virtual void Build() = 0;
 
   void Update()
   {
-    if (dirty)
+    if (Dirty)
       Build();
-    dirty = false;
+    Dirty = false;
   }
 
   template<typename DeviceAdapter>
   VTKM_CONT vtkm::exec::PointLocator PrepareForExecution(DeviceAdapter device)
   {
-    return PrepareForExecution(GetDeviceId(device));
+    vtkm::cont::DeviceAdapterId deviceId = vtkm::cont::DeviceAdapterTraits<DeviceAdapter>::GetId();
+    return PrepareForExecution(deviceId);
   }
 
   VTKM_CONT virtual vtkm::exec::PointLocator PrepareForExecution(
     vtkm::cont::DeviceAdapterId device) = 0;
 
 private:
-  vtkm::cont::CoordinateSystem coordinates;
-  bool dirty;
+  vtkm::cont::CoordinateSystem Coords;
+  bool Dirty;
 }
 
 } // namespace cont
