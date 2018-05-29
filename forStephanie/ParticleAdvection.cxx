@@ -2,6 +2,7 @@
 #include <string>
 #include <cstdlib>
 #include <vector>
+#include <limits>
 
 #include <vtkm/cont/DataSet.h>
 #include <vtkm/cont/Timer.h>
@@ -37,9 +38,9 @@ int renderAndWriteDataSet(vtkm::cont::DataSet& dataset, std::string output)
 }
 
 void performAdvection(std::string inData,
-                      int numSeeds,
-                      int numSteps,
-                      float length,
+                      vtkm::Id numSeeds,
+                      vtkm::Id numSteps,
+                      vtkm::FloatDefault length,
                       vtkm::cont::DataSet& outData)
 {
   using DeviceAdapter = VTKM_DEFAULT_DEVICE_ADAPTER_TAG;
@@ -88,10 +89,14 @@ void performAdvection(std::string inData,
 
 int main(int argc, char** argv)
 {
-  int numSeeds = 1000;
-  int numSteps = 1000;
-  float length = 0.5;
+  vtkm::Id numSeeds = 1000;
+  vtkm::Id numSteps = 1000;
+  vtkm::FloatDefault length = 0.5;
   int threads = 8;
+
+  std::cout << "Limit - int : " << std::numeric_limits<int>::max() << std::endl;
+  std::cout << "Limit - vtkm::Id : " << std::numeric_limits<vtkm::Id>::max() << std::endl;
+
   std::string datasetname;
   std::string outFile("output.vtk");
   if(argc < 2)
@@ -115,11 +120,11 @@ int main(int argc, char** argv)
       datasetname = std::string(argv[i+1]);
     }
     else if(param.compare("-seeds") == 0)
-      numSeeds = atoi(argv[i+1]);
+      numSeeds = static_cast<vtkm::Id>(atoi(argv[i+1]));
     else if(param.compare("-steps") == 0)
-      numSteps = atoi(argv[i+1]);
+      numSteps = static_cast<vtkm::Id>(atoi(argv[i+1]));
     else if(param.compare("-length") == 0)
-      length = static_cast<float>(atof(argv[i+1]));
+      length = static_cast<vtkm::FloatDefault>(atof(argv[i+1]));
     else if(param.compare("-t") == 0)
     {
       threads = atoi(argv[i+1]);

@@ -72,7 +72,7 @@ void GenerateSeeds(std::vector<vtkm::Vec<FieldType,3>>& seeds,
     }
   }
 
-  for (int i = 0; i < numSeeds; i++)
+  for (vtkm::Id i = 0; i < numSeeds; i++)
   {
     vtkm::Vec<FieldType, 3> point;
     vtkm::Float32 rx = (vtkm::Float32)rand() / (vtkm::Float32)RAND_MAX;
