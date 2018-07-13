@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Substitute proper path for built VTKm
+cmake -DVTKm_DIR=/Users/abhishek/repositories/bmaster/lib/cmake/vtkm-1.2 \
+      -DCMAKE_BUILD_TYPE=DEBUG
