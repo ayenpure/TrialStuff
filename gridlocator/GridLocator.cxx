@@ -43,17 +43,9 @@ public:
   ExecutionGridEvaluator() = default;
 
   VTKM_CONT
-  ExecutionGridEvaluator(const vtkm::cont::CellLocator* const* locator)
+  ExecutionGridEvaluator(std::shared_ptr<vtkm::cont::CellLocator> locator)
   {
-    std::cout << "Into the Constructor" << std::endl;
-    vtkm::cont::CoordinateSystem coords = (*locator)->GetCoordinates();
-    std::cout << "Got coordinates" << std::endl;
-    vtkm::Bounds bounds = coords.GetBounds();
-    std::cout << "Bounds details : " << std::endl;
-    std::cout << "X : " << bounds.X.Min << " to " << bounds.X.Max << std::endl;
-    std::cout << "Y : " << bounds.Y.Min << " to " << bounds.Y.Max << std::endl;
-    std::cout << "z : " << bounds.Z.Min << " to " << bounds.Z.Max << std::endl;
-    Locator = (*locator)->PrepareForExecution(DeviceAdapter());
+    Locator = locator->PrepareForExecution(DeviceAdapter());
   }
 
   template <typename Point>
@@ -84,48 +76,32 @@ public:
   GridEvaluator(vtkm::cont::CoordinateSystem& coordinates,
                 vtkm::cont::DynamicCellSet& cellset)
   {
-    //vtkm::cont::CoordinateSystem coords = (*locator)->GetCoordinates();
-    vtkm::Bounds bounds = coordinates.GetBounds();
-    std::cout << "Bounds details : " << std::endl;
-    std::cout << "X : " << bounds.X.Min << " to " << bounds.X.Max << std::endl;
-    std::cout << "Y : " << bounds.Y.Min << " to " << bounds.Y.Max << std::endl;
-    std::cout << "z : " << bounds.Z.Min << " to " << bounds.Z.Max << std::endl;
-
     if(coordinates.GetData().IsType<UniformType>() && cellset.IsSameType(StructuredType()))
     {
-      std::cout << "Building Uniform" << std::endl;
       vtkm::cont::CellLocatorUniformGrid locator;
       locator.SetCoordinates(coordinates);
       locator.SetCellSet(cellset);
       locator.Update();
-      this->Locator = &locator;
-      std::cout << "Finished Building Uniform" << std::endl;
+      this->Locator = std::make_shared<vtkm::cont::CellLocatorUniformGrid>(locator);
     }
     else if(coordinates.GetData().IsType<RectilinearType>() && cellset.IsSameType(StructuredType()))
     {
-      std::cout << "Building Rectilinear" << std::endl;
       vtkm::cont::CellLocatorRectilinearGrid locator;
       locator.SetCoordinates(coordinates);
       locator.SetCellSet(cellset);
       locator.Update();
-      this->Locator = &locator;
-      std::cout << "Finished Building Rectilinear" << std::endl;
-    }
-    else
-    {
-      std::cout << "This bitch is explicit." << std::endl;
+      this->Locator = std::make_shared<vtkm::cont::CellLocatorRectilinearGrid>(locator);
     }
   }
 
   template <typename DeviceAdapter>
   VTKM_CONT ExecutionGridEvaluator<DeviceAdapter> PrepareForExecution(DeviceAdapter) const
   {
-    std::cout << "Building Execution Grid Evaluator" << std::endl;
-    return ExecutionGridEvaluator<DeviceAdapter>(&this->Locator);
+    return ExecutionGridEvaluator<DeviceAdapter>(this->Locator);
   }
 
 private:
-  const vtkm::cont::CellLocator* Locator;
+  std::shared_ptr<vtkm::cont::CellLocator> Locator;
   // Add Field here.
 };
 
