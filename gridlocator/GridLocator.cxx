@@ -13,6 +13,8 @@
 #include <vtkm/worklet/WorkletMapField.h>
 #include <vtkm/worklet/DispatcherMapField.h>
 
+#include "CellInterpolationHelper.h"
+
 class TrialWorklet : public vtkm::worklet::WorkletMapField
 {
 public:
@@ -43,9 +45,11 @@ public:
   ExecutionGridEvaluator() = default;
 
   VTKM_CONT
-  ExecutionGridEvaluator(std::shared_ptr<vtkm::cont::CellLocator> locator)
+  ExecutionGridEvaluator(std::shared_ptr<vtkm::cont::CellLocator> locator,
+                         std::shared_ptr<vtkm::cont::CellInterpolationHelper> interpolationHelper)
   {
     Locator = locator->PrepareForExecution(DeviceAdapter());
+    InterpolationHelper = interpolationHelper->PrepareForExecution(DeviceAdapter());
   }
 
   template <typename Point>
@@ -57,10 +61,16 @@ public:
     Point parametric;
     Locator->FindCell(point, cellId, parametric, worklet);
     std::cout << "Cell Id : " << cellId << ", Parametric : " << parametric << std::endl;
+    vtkm::Id fieldIndices[8];
+    vtkm::Id vertices = InterpolationHelper->GetFieldIndices(cellId, fieldIndices);
+    vtkm::Id shape = InterpolationHelper->GetCellShape(cellId);
+    std::cout << "Number of vertices : " << vertices << std::endl;
+    std::cout << "Cell shape : " << (vtkm::Id)shape << std::endl;
   }
 
 private:
   const vtkm::exec::CellLocator* Locator;
+  const vtkm::exec::CellInterpolationHelper* InterpolationHelper;
   // Add Execution Field here.
 };
 
@@ -76,32 +86,39 @@ public:
   GridEvaluator(vtkm::cont::CoordinateSystem& coordinates,
                 vtkm::cont::DynamicCellSet& cellset)
   {
-    if(coordinates.GetData().IsType<UniformType>() && cellset.IsSameType(StructuredType()))
+    if(cellset.IsSameType(StructuredType()))
     {
-      vtkm::cont::CellLocatorUniformGrid locator;
-      locator.SetCoordinates(coordinates);
-      locator.SetCellSet(cellset);
-      locator.Update();
-      this->Locator = std::make_shared<vtkm::cont::CellLocatorUniformGrid>(locator);
-    }
-    else if(coordinates.GetData().IsType<RectilinearType>() && cellset.IsSameType(StructuredType()))
-    {
-      vtkm::cont::CellLocatorRectilinearGrid locator;
-      locator.SetCoordinates(coordinates);
-      locator.SetCellSet(cellset);
-      locator.Update();
-      this->Locator = std::make_shared<vtkm::cont::CellLocatorRectilinearGrid>(locator);
+      if(coordinates.GetData().IsType<UniformType>())
+      {
+        vtkm::cont::CellLocatorUniformGrid locator;
+        locator.SetCoordinates(coordinates);
+        locator.SetCellSet(cellset);
+        locator.Update();
+        this->Locator = std::make_shared<vtkm::cont::CellLocatorUniformGrid>(locator);
+      }
+      else if(coordinates.GetData().IsType<RectilinearType>() && cellset.IsSameType(StructuredType()))
+      {
+        vtkm::cont::CellLocatorRectilinearGrid locator;
+        locator.SetCoordinates(coordinates);
+        locator.SetCellSet(cellset);
+        locator.Update();
+        this->Locator = std::make_shared<vtkm::cont::CellLocatorRectilinearGrid>(locator);
+      }
+      vtkm::cont::StructuredCellInterpolationHelper interpolationHelper(cellset);
+      this->InterpolationHelper
+        = std::make_shared<vtkm::cont::StructuredCellInterpolationHelper>(interpolationHelper);
     }
   }
 
   template <typename DeviceAdapter>
   VTKM_CONT ExecutionGridEvaluator<DeviceAdapter> PrepareForExecution(DeviceAdapter) const
   {
-    return ExecutionGridEvaluator<DeviceAdapter>(this->Locator);
+    return ExecutionGridEvaluator<DeviceAdapter>(this->Locator, this->InterpolationHelper);
   }
 
 private:
   std::shared_ptr<vtkm::cont::CellLocator> Locator;
+  std::shared_ptr<vtkm::cont::CellInterpolationHelper> InterpolationHelper;
   // Add Field here.
 };
 
