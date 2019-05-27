@@ -37,9 +37,9 @@ int main(int argc, char** argv)
 {
   using VectorType = vtkm::Vec<vtkm::FloatDefault, 3>;
 
-  vtkm::Id3 dimensions(20, 10, 1);
+  vtkm::Id3 dimensions(21, 11, 1);
   VectorType origin(0., 0., 0.);
-  VectorType spacing(1./20. , 1./10. , 1.);
+  VectorType spacing(1./10., 1./10., 1.);
 
   vtkm::cont::DataSet dataset;
 
